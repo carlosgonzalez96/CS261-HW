@@ -94,10 +94,11 @@ void printList(DynArr *heap)
 {
   /* TODO */
 	int topOfDList = sizeDynArr(heap);
-	int current = 0;
-	while (topOfDList > current) {
-		print_type(getDynArr(heap,current));
-		current++;
+	int instant = 0;
+
+	while (topOfDList > instant) {
+		print_type(getDynArr(heap,instant));
+		instant++;
 	}
 
 }
