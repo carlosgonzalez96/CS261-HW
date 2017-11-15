@@ -103,6 +103,7 @@ This isn't elegant. Values have to be moved.
 void _setTableSize(struct hashMap * ht, int newTableSize)
 {
 	/*TODO*/
+  
 }
 
 /*
@@ -143,7 +144,11 @@ ValueType atMap (struct hashMap * ht, KeyType k)
 int containsKey (struct hashMap * ht, KeyType k)
 {
 	/*TODO*/
-	return 0;
+  if(k == ){
+	 return 1;
+ } else {
+   return 0;
+ }
 }
 
 /*
@@ -173,7 +178,7 @@ int size (struct hashMap *ht)
 int capacity(struct hashMap *ht)
 {
 	/*TODO*/
-	return 0;
+	return ht->tableSize;
 }
 
 /*
@@ -196,6 +201,7 @@ int emptyBuckets(struct hashMap *ht)
 float tableLoad(struct hashMap *ht)
 {
 	/*TODO*/
+
 	return 0;
 }
 
