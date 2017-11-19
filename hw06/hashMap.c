@@ -103,7 +103,29 @@ This isn't elegant. Values have to be moved.
 void _setTableSize(struct hashMap * ht, int newTableSize)
 {
 	/*TODO*/
-  
+  hashMap* tmpMap = createMap(newTableSize);
+
+	for (int i = 0; i < ht->tableSize; i++) {
+		if (ht->table[i] == NULL)
+			continue;
+
+		hashLink* currentLink = ht->table[i];
+
+		do {
+			insertMap(tmpMap, currentLink->key, currentLink->value);
+			currentLink = currentLink->next;
+		}
+    while (currentLink != NULL);
+	}
+
+	_freeMap(ht);
+	ht->count = tmpMap->count;
+	ht->table = tmpMap->table;
+	ht->tableSize = tmpMap->tableSize;
+
+	/* We don't want to free the table here, as it is the new table being used by our hash table */
+	tmpMap->table = NULL;
+free(tmpMap);
 }
 
 /*
@@ -121,6 +143,37 @@ void _setTableSize(struct hashMap * ht, int newTableSize)
 void insertMap (struct hashMap * ht, KeyType k, ValueType v)
 {
 	/*TODO*/
+
+int hash;
+struct hashLink * link = (struct hashLink *) malloc(sizeof(struct hashLink));
+char * newKey = (char *) malloc(strlen(k) + 1);
+
+if(HASHING_FUNCTION == 1) {
+    hash = stringHash1(k) % ht->tableSize;
+  } else {
+    hash = stringHash2(k) % ht->tableSize;
+  }
+
+if(hash < 0) {
+    hash += ht->tableSize;
+}
+
+if(containsKey(ht, k)) {
+    removeKey(ht, k);
+}
+
+strcpy(newKey, k);
+if(tableLoad(ht) >= LOAD_FACTOR_THRESHOLD) {
+    _setTableSize(ht, ht->tableSize * 2);
+}
+
+ht->table[hash] = link;
+link->key = newKey;
+link->next = ht->table[hash];
+link->value = v;
+
+ht->count++;
+
 }
 
 /*
@@ -134,6 +187,23 @@ void insertMap (struct hashMap * ht, KeyType k, ValueType v)
 ValueType atMap (struct hashMap * ht, KeyType k)
 {
 	/*TODO*/
+  int hashIndex;
+  struct hashLink *currLink;
+
+  if(HASHING_FUNCTION == 1) {
+    hashIndex = stringHash1(k) % ht->tableSize;
+  } else {
+    hashIndex = stringHash2(k) % ht->tableSize;
+  }
+
+  currLink = ht->table[hashIndex];
+
+  while (currLink != 0) {
+    if (strcmp(k, currLink->key) == 0) {
+      return currLink->value;
+    }
+    currLink = currLink->next;
+}
 	return 0;
 }
 
@@ -144,11 +214,20 @@ ValueType atMap (struct hashMap * ht, KeyType k)
 int containsKey (struct hashMap * ht, KeyType k)
 {
 	/*TODO*/
-  if(k == ){
-	 return 1;
- } else {
-   return 0;
- }
+int hash;
+if (HASHING_FUNCTION == 1) {
+	hash = stringHash1(k) % ht->tableSize;
+}else if (HASHING_FUNCTION == 2) {
+	hash = stringHash2(k) % ht->tableSize;
+}
+	hashLink* currentLink = ht->table[hash];
+
+	while (currentLink != NULL) {
+		if (strcmp(currentLink->key, k) == 0)
+			return 1;
+		currentLink = currentLink->next;
+	}
+return 0;
 }
 
 /*
@@ -160,15 +239,31 @@ int containsKey (struct hashMap * ht, KeyType k)
 void removeKey (struct hashMap * ht, KeyType k)
 {
 	/*TODO*/
-}
+  int hashIndex;
+    hashIndex = stringHash2(k) % ht->tableSize;
+  	if (hashIndex < 0){
+  		hashIndex += ht->tableSize;
+  	}
 
+  	struct hashLink *curLink = ht->table[hashIndex];
+  	struct hashLink *prevLink = ht->table[hashIndex];
+  	while (curLink != 0) {
+  		if (curLink->key == k) {
+  			prevLink->next = curLink->next;
+  			free(curLink);
+  			return;
+  		}
+  		prevLink = curLink;
+  		curLink = curLink->next;
+  }
+}
 /*
  returns the number of hashLinks in the table
  */
 int size (struct hashMap *ht)
 {
 	/*TODO*/
-	return 0;
+	return ht->count;
 
 }
 
@@ -188,7 +283,13 @@ int capacity(struct hashMap *ht)
 int emptyBuckets(struct hashMap *ht)
 {
 	/*TODO*/
-	return 0;
+  int empty = 0;
+    for (int i = 0; i < ht->tableSize; i++) {
+  		if (ht->table[i] == NULL){
+  			empty++;
+      }
+  	}
+  return empty;
 }
 
 /*
@@ -201,8 +302,9 @@ int emptyBuckets(struct hashMap *ht)
 float tableLoad(struct hashMap *ht)
 {
 	/*TODO*/
-
-	return 0;
+  float loadUp;
+    loadUp = (float)size(ht) / capacity(ht);
+    return loadUp;
 }
 
 /* print the hashMap */

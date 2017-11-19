@@ -12,4 +12,4 @@ concordance: hashMap.o main.o
 clean:
 	rm concordance
 	rm hashMap.o
-rm main.o
+	rm main.o
