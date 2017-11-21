@@ -102,30 +102,14 @@ This isn't elegant. Values have to be moved.
 */
 void _setTableSize(struct hashMap * ht, int newTableSize)
 {
-	/*TODO*/
-  hashMap* tmpMap = createMap(newTableSize);
+  struct hashMap *newMap;
+	newMap = createMap(newTableSize);
 
-	for (int i = 0; i < ht->tableSize; i++) {
-		if (ht->table[i] == NULL)
-			continue;
+  for (int i = 0; i < ht->tableSize; ++i) {
+    newMap->table[i] = ht->table[i];
+  }
 
-		hashLink* currentLink = ht->table[i];
-
-		do {
-			insertMap(tmpMap, currentLink->key, currentLink->value);
-			currentLink = currentLink->next;
-		}
-    while (currentLink != NULL);
-	}
-
-	_freeMap(ht);
-	ht->count = tmpMap->count;
-	ht->table = tmpMap->table;
-	ht->tableSize = tmpMap->tableSize;
-
-	/* We don't want to free the table here, as it is the new table being used by our hash table */
-	tmpMap->table = NULL;
-free(tmpMap);
+  ht = newMap;
 }
 
 /*
@@ -142,38 +126,38 @@ free(tmpMap);
  */
 void insertMap (struct hashMap * ht, KeyType k, ValueType v)
 {
-	/*TODO*/
+	int hashIndex;
+  struct hashLink *newHashLink = malloc(sizeof(struct hashLink));
+  char *newKeyType = (char *)malloc(strlen(k) + 1);
 
-int hash;
-struct hashLink * link = (struct hashLink *) malloc(sizeof(struct hashLink));
-char * newKey = (char *) malloc(strlen(k) + 1);
+    //TODO: add hashing function to obfuscate
 
-if(HASHING_FUNCTION == 1) {
-    hash = stringHash1(k) % ht->tableSize;
+  if(HASHING_FUNCTION == 1) {
+    hashIndex = stringHash1(k) % ht->tableSize;
   } else {
-    hash = stringHash2(k) % ht->tableSize;
+    hashIndex = stringHash2(k) % ht->tableSize;
   }
 
-if(hash < 0) {
-    hash += ht->tableSize;
-}
+  if(hashIndex < 0) {
+    hashIndex += ht->tableSize;
+  }
 
-if(containsKey(ht, k)) {
+  if (containsKey(ht, k)) {
     removeKey(ht, k);
-}
+  }
 
-strcpy(newKey, k);
-if(tableLoad(ht) >= LOAD_FACTOR_THRESHOLD) {
+  strcpy(newKeyType, k);
+
+  newHashLink->key = newKeyType;
+  newHashLink->value = v;
+  newHashLink->next = ht->table[hashIndex];
+  ht->table[hashIndex] = newHashLink;
+
+  ht->count++;
+
+  if (tableLoad(ht) >= LOAD_FACTOR_THRESHOLD) {
     _setTableSize(ht, ht->tableSize * 2);
-}
-
-ht->table[hash] = link;
-link->key = newKey;
-link->next = ht->table[hash];
-link->value = v;
-
-ht->count++;
-
+  }
 }
 
 /*
@@ -186,9 +170,10 @@ ht->count++;
  */
 ValueType atMap (struct hashMap * ht, KeyType k)
 {
-	/*TODO*/
-  int hashIndex;
+	int hashIndex;
   struct hashLink *currLink;
+
+  //TODO: add hashing function to obfuscate
 
   if(HASHING_FUNCTION == 1) {
     hashIndex = stringHash1(k) % ht->tableSize;
@@ -203,8 +188,9 @@ ValueType atMap (struct hashMap * ht, KeyType k)
       return currLink->value;
     }
     currLink = currLink->next;
-}
-	return 0;
+  }
+
+  return 0;
 }
 
 /*
@@ -213,21 +199,25 @@ ValueType atMap (struct hashMap * ht, KeyType k)
  */
 int containsKey (struct hashMap * ht, KeyType k)
 {
-	/*TODO*/
-int hash;
-if (HASHING_FUNCTION == 1) {
-	hash = stringHash1(k) % ht->tableSize;
-}else if (HASHING_FUNCTION == 2) {
-	hash = stringHash2(k) % ht->tableSize;
-}
-	hashLink* currentLink = ht->table[hash];
+	int hashIndex;
+  struct hashLink *currentLink;
 
-	while (currentLink != NULL) {
-		if (strcmp(currentLink->key, k) == 0)
-			return 1;
-		currentLink = currentLink->next;
-	}
-return 0;
+  if(HASHING_FUNCTION == 1) {
+    hashIndex = stringHash1(k) % ht->tableSize;
+  } else {
+    hashIndex = stringHash2(k) % ht->tableSize;
+  }
+
+  currentLink = ht->table[hashIndex];
+
+  while (currentLink != 0) {
+    if (strcmp(k, currentLink->key) == 0) {
+      return 1;
+    }
+    currentLink = currentLink->next;
+  }
+
+  return 0;
 }
 
 /*
@@ -238,33 +228,43 @@ return 0;
  */
 void removeKey (struct hashMap * ht, KeyType k)
 {
-	/*TODO*/
   int hashIndex;
-    hashIndex = stringHash2(k) % ht->tableSize;
-  	if (hashIndex < 0){
-  		hashIndex += ht->tableSize;
-  	}
+  struct hashLink *prevLink;
+  struct hashLink *currLink;
 
-  	struct hashLink *curLink = ht->table[hashIndex];
-  	struct hashLink *prevLink = ht->table[hashIndex];
-  	while (curLink != 0) {
-  		if (curLink->key == k) {
-  			prevLink->next = curLink->next;
-  			free(curLink);
-  			return;
-  		}
-  		prevLink = curLink;
-  		curLink = curLink->next;
+  if(HASHING_FUNCTION == 1) {
+    hashIndex = stringHash1(k) % ht->tableSize;
+  } else {
+    hashIndex = stringHash2(k) % ht->tableSize;
+  }
+
+  currentLink = ht->table[hashIndex];
+  prevLink = currLink;
+
+  while (currentLink != 0) {
+    if (strcmp(k, currentLink->key) == 0) {
+      if (prevLink == currentLink) {
+        prevLink = currentLink->next;
+        ht->table[hashIndex] = prevLink;
+      } else {
+        prevLink->next = currentLink->next;
+      }
+
+      currentLink->value = 0;
+      ht->count--;
+      break;
+    }
+
+    currentLink = currLink->next;
   }
 }
+
 /*
  returns the number of hashLinks in the table
  */
 int size (struct hashMap *ht)
 {
-	/*TODO*/
 	return ht->count;
-
 }
 
 /*
@@ -272,8 +272,7 @@ int size (struct hashMap *ht)
  */
 int capacity(struct hashMap *ht)
 {
-	/*TODO*/
-	return ht->tableSize;
+  return ht->tableSize;
 }
 
 /*
@@ -282,14 +281,15 @@ int capacity(struct hashMap *ht)
  */
 int emptyBuckets(struct hashMap *ht)
 {
-	/*TODO*/
-  int empty = 0;
-    for (int i = 0; i < ht->tableSize; i++) {
-  		if (ht->table[i] == NULL){
-  			empty++;
-      }
-  	}
-  return empty;
+  int numberEmpty = 0;
+
+  for (int i = 0; i < ht->tableSize; i++) {
+    if (ht->table[i] == 0) {
+      numberEmpty++;
+    }
+  }
+
+  return numberEmpty;
 }
 
 /*
@@ -301,10 +301,11 @@ int emptyBuckets(struct hashMap *ht)
  */
 float tableLoad(struct hashMap *ht)
 {
-	/*TODO*/
-  float loadUp;
-    loadUp = (float)size(ht) / capacity(ht);
-    return loadUp;
+  float loadRatio = 0.0;
+
+  loadRatio = (float)ht->count / (float)ht->tableSize;
+
+  return loadRatio;
 }
 
 /* print the hashMap */
